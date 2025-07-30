@@ -1,17 +1,39 @@
-const jwt = require("jsonwebtoken");
+const admin = require("../firebase");
+const User = require("../models/User");
 
-module.exports = function (req, res, next) {
-    const token = req.headers.authorization?.split(" ")[1];
+async function authenticateFirebaseToken(req, res, next) {
+  const authHeader = req.headers.authorization;
 
-    if (!token) {
-        return res.status(401).json({ message: "Access denied. No token provided." });
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Missing or invalid token" });
+  }
+
+  const idToken = authHeader.split("Bearer ")[1];
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid, email } = decodedToken;
+
+    // Check if user exists in MongoDB
+    let user = await User.findOne({ firebaseUid: uid });
+    if (!user) {
+      user = await User.create({
+        firebaseUid: uid,
+        username: email || uid, // fallback if no email
+      });
     }
 
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = {id: decoded.userId, username: decoded.username};
-        next();
-    } catch (error) {
-        res.status(400).json({ message: "Invalid token." });
-    }
-};
+    req.user = {
+      id: user._id,        // MongoDB user ID
+      uid: uid,            // Firebase UID
+      email: email || "",  // Email if available
+    };
+
+    next();
+  } catch (error) {
+    console.error("Firebase Auth error:", error);
+    return res.status(401).json({ message: "Unauthorized", error });
+  }
+}
+
+module.exports = authenticateFirebaseToken;
