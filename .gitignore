@@ -1,0 +1,28 @@
+# Node.js dependencies
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# dotenv environment variables
+.env
+
+# Firebase service account credentials
+moviefinder-adminsdk.json
+
+# Firebase secret key
+serviceAccountKey.json
+
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+
+# VSCode settings (optional, for personal use only)
+.vscode/
+
+# Build files (if applicable)
+dist/
+build/
