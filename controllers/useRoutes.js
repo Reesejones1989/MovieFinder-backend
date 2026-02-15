@@ -1,31 +1,36 @@
 const express = require("express");
+const axios = require("axios");
 const Favorite = require("../models/Favorite");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 
+// ✅ Enable CORS for frontend
+const cors = require("cors");
+router.use(cors({
+  origin: ["http://localhost:5173", "https://reesejones1989.github.io"], // add your frontend URLs
+  credentials: true,
+}));
 
 // ✅ Get Single Movie (VidSrc)
 router.get("/movies/:id", async (req, res) => {
   try {
     const { id } = req.params;
-
     const vidSrcUrl = `https://vidsrc.xyz/embed/movie/${id}`;
-    
 
     res.status(200).json({
       movieId: id,
-     vidSrc: vidSrcUrl,
+      vidSrc: vidSrcUrl,
     });
   } catch (error) {
     res.status(500).json({ message: "Error fetching movie", error });
   }
 });
 
+// ✅ Get TV show info (example OMDb)
 router.get("/tv/:id/info", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Example if using OMDb internally
     const response = await axios.get(
       `http://www.omdbapi.com/?i=${id}&apikey=${process.env.OMDB_KEY}`
     );
@@ -35,7 +40,6 @@ router.get("/tv/:id/info", async (req, res) => {
     res.status(500).json({ message: "Error fetching show info", error });
   }
 });
-
 
 // ✅ Get Single TV Show Episode (VidSrc)
 router.get("/tv/:id", async (req, res) => {
@@ -59,7 +63,6 @@ router.get("/tv/:id", async (req, res) => {
     res.status(500).json({ message: "Error fetching TV episode", error });
   }
 });
-
 
 // ✅ Get User's Favorites
 router.get("/favorites", authMiddleware, async (req, res) => {
