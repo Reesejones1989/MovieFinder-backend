@@ -26,3 +26,9 @@ Thumbs.db
 # Build files (if applicable)
 dist/
 build/
+
+
+.env
+moviefinder-adminsdk.json
+moviefinder-auth-firebase-adminsdk.json
+serviceAccountKey.json
