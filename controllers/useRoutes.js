@@ -7,7 +7,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 // ✅ Enable CORS for frontend
 const cors = require("cors");
 router.use(cors({
-  origin: ["http://localhost:5173", "https://reesejones1989.github.io"], // add your frontend URLs
+  origin: ["http://localhost:5173", "https://moviefinderonline.netlify.app" , "https://moviefinder-fl61.onrender.com"], // add your frontend URLs
   credentials: true,
 }));
 
