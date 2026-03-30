@@ -4,92 +4,147 @@ const Favorite = require("../models/Favorite");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 
-// ✅ Enable CORS for frontend
+// ✅ CORS
 const cors = require("cors");
 router.use(cors({
-  origin: ["http://localhost:5173", "https://moviefinderonline.netlify.app" , "https://moviefinder-fl61.onrender.com"], // add your frontend URLs
+  origin: [
+    "http://localhost:5173",
+    "https://moviefinderonline.netlify.app",
+    "https://moviefinder-fl61.onrender.com"
+  ],
   credentials: true,
 }));
 
-// ✅ Get Single Movie (VidSrc)
+// ✅ Helper: Convert IMDb → TMDb ID
+async function getTMDBId(imdbID) {
+  const res = await axios.get(
+    `https://api.themoviedb.org/3/find/${imdbID}`,
+    {
+      params: {
+        api_key: process.env.VITE_TMDB_API_KEY,
+        external_source: "imdb_id",
+      },
+    }
+  );
+
+  return res.data.tv_results?.[0]?.id || null;
+}
+
+// ✅ Get Movie (VidSrc only)
 router.get("/movies/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const vidSrcUrl = `https://vidsrc.xyz/embed/movie/${id}`;
 
     res.status(200).json({
       movieId: id,
-      vidSrc: vidSrcUrl,
+      vidSrc: `https://vidsrc.xyz/embed/movie/${id}`,
     });
+
   } catch (error) {
     res.status(500).json({ message: "Error fetching movie", error });
   }
 });
 
-// ✅ Get TV show info (example OMDb)
+// ✅ Get TV Show Info (TMDb)
 router.get("/tv/:id/info", async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // IMDb ID
     const { season } = req.query;
 
-    if (!process.env.OMDB_KEY) {
-      return res.status(500).json({
-        message: "OMDB_KEY missing",
-      });
+    //const TMDB_KEY = process.env.TMDB_API_KEY;
+    const TMDB_KEY = process.env.VITE_TMDB_API_KEY
+
+    if (!TMDB_KEY) {
+      return res.status(500).json({ message: "TMDB_API_KEY missing" });
     }
 
-    let url = `http://www.omdbapi.com/?i=${id}&apikey=${process.env.OMDB_KEY}`;
+    // ✅ STEP 1: Convert IMDb → TMDB
+    const findRes = await axios.get(
+      `https://api.themoviedb.org/3/find/${id}`,
+      {
+        params: {
+          api_key: TMDB_KEY,
+          external_source: "imdb_id",
+        },
+      }
+    );
 
-    // ✅ Handle season properly
+    const show = findRes.data.tv_results[0];
+
+    if (!show) {
+      return res.status(404).json({ message: "Show not found in TMDB" });
+    }
+
+    const tmdbId = show.id;
+
+    // ✅ STEP 2: If season requested → get episodes
     if (season) {
-      url += `&Season=${season}`;
-    }
+      const seasonRes = await axios.get(
+        `https://api.themoviedb.org/3/tv/${tmdbId}/season/${season}`,
+        {
+          params: { api_key: TMDB_KEY },
+        }
+      );
 
-    const response = await axios.get(url);
-
-    // ✅ Handle OMDb errors cleanly
-    if (response.data.Response === "False") {
-      return res.status(404).json({
-        message: response.data.Error,
+      return res.json({
+        season: seasonRes.data.season_number,
+        episodes: seasonRes.data.episodes,
       });
     }
 
-    res.json(response.data);
+    // ✅ STEP 3: Get show details
+    const showRes = await axios.get(
+      `https://api.themoviedb.org/3/tv/${tmdbId}`,
+      {
+        params: { api_key: TMDB_KEY },
+      }
+    );
+
+    res.json({
+      id: tmdbId,
+      title: showRes.data.name,
+      year: showRes.data.first_air_date?.split("-")[0],
+      totalSeasons: showRes.data.number_of_seasons,
+    });
 
   } catch (error) {
-    console.error("OMDb ERROR:", error.message);
+    console.error("TMDB ERROR:", error.response?.data || error.message);
 
     res.status(500).json({
       message: "Error fetching show info",
-      error: error.message,
+      error: error.response?.data || error.message,
     });
   }
 });
 
-// ✅ Get Single TV Show Episode (VidSrc)
+// ✅ Get TV Episode (VidSrc playback)
 router.get("/tv/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const { season, episode } = req.query;
 
     if (!season || !episode) {
-      return res.status(400).json({ message: "Season and episode required" });
+      return res.status(400).json({
+        message: "Season and episode required",
+      });
     }
-
-    const vidSrcUrl = `https://vidsrc.xyz/embed/tv/${id}/${season}/${episode}`;
 
     res.status(200).json({
       showId: id,
       season,
       episode,
-      vidSrc: vidSrcUrl,
+      vidSrc: `https://vidsrc.xyz/embed/tv/${id}/${season}/${episode}`,
     });
+
   } catch (error) {
-    res.status(500).json({ message: "Error fetching TV episode", error });
+    res.status(500).json({
+      message: "Error fetching TV episode",
+      error,
+    });
   }
 });
 
-// ✅ Get User's Favorites
+// ✅ Favorites (UNCHANGED)
 router.get("/favorites", authMiddleware, async (req, res) => {
   try {
     const favorite = await Favorite.findOne({ userId: req.user.uid });
@@ -99,44 +154,69 @@ router.get("/favorites", authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ Add to Favorites
 router.post("/favorites", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.uid;
     const { movieId, title, vidSrc, levidia } = req.body;
 
     let favorite = await Favorite.findOne({ userId });
+
     if (!favorite) {
       favorite = new Favorite({
         userId,
         favorites: [{ movieId, title, vidSrc, levidia }],
       });
       await favorite.save();
-      return res.status(200).json({ message: "Added to favorites", favorites: favorite.favorites });
+      return res.status(200).json({
+        message: "Added to favorites",
+        favorites: favorite.favorites,
+      });
     }
 
-    const exists = favorite.favorites.some((fav) => fav.movieId === movieId);
-    if (exists) return res.status(400).json({ message: "Already in favorites" });
+    const exists = favorite.favorites.some(
+      (fav) => fav.movieId === movieId
+    );
+
+    if (exists) {
+      return res.status(400).json({
+        message: "Already in favorites",
+      });
+    }
 
     favorite.favorites.push({ movieId, title, vidSrc, levidia });
     await favorite.save();
 
-    res.status(200).json({ message: "Added to favorites", favorites: favorite.favorites });
+    res.status(200).json({
+      message: "Added to favorites",
+      favorites: favorite.favorites,
+    });
+
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
 });
 
-// ✅ Remove from Favorites
 router.delete("/favorites/:id", authMiddleware, async (req, res) => {
   try {
     const favorite = await Favorite.findOne({ userId: req.user.uid });
-    if (!favorite) return res.status(404).json({ message: "Favorites not found" });
 
-    favorite.favorites = favorite.favorites.filter((fav) => fav.movieId !== req.params.id);
+    if (!favorite) {
+      return res.status(404).json({
+        message: "Favorites not found",
+      });
+    }
+
+    favorite.favorites = favorite.favorites.filter(
+      (fav) => fav.movieId !== req.params.id
+    );
+
     await favorite.save();
 
-    res.json({ message: "Removed from favorites", favorites: favorite.favorites });
+    res.json({
+      message: "Removed from favorites",
+      favorites: favorite.favorites,
+    });
+
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
