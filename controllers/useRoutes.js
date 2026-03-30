@@ -30,14 +30,39 @@ router.get("/movies/:id", async (req, res) => {
 router.get("/tv/:id/info", async (req, res) => {
   try {
     const { id } = req.params;
+    const { season } = req.query;
 
-    const response = await axios.get(
-      `http://www.omdbapi.com/?i=${id}&apikey=${process.env.OMDB_KEY}`
-    );
+    if (!process.env.OMDB_KEY) {
+      return res.status(500).json({
+        message: "OMDB_KEY missing",
+      });
+    }
+
+    let url = `http://www.omdbapi.com/?i=${id}&apikey=${process.env.OMDB_KEY}`;
+
+    // ✅ Handle season properly
+    if (season) {
+      url += `&Season=${season}`;
+    }
+
+    const response = await axios.get(url);
+
+    // ✅ Handle OMDb errors cleanly
+    if (response.data.Response === "False") {
+      return res.status(404).json({
+        message: response.data.Error,
+      });
+    }
 
     res.json(response.data);
+
   } catch (error) {
-    res.status(500).json({ message: "Error fetching show info", error });
+    console.error("OMDb ERROR:", error.message);
+
+    res.status(500).json({
+      message: "Error fetching show info",
+      error: error.message,
+    });
   }
 });
 
