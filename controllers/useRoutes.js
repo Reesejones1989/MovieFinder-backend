@@ -52,7 +52,7 @@ router.get("/tv/:id/info", async (req, res) => {
     const { season } = req.query;
 
     //const TMDB_KEY = process.env.TMDB_API_KEY;
-    const TMDB_KEY = process.env.VITE_TMDB_API_KEY
+    const TMDB_KEY = process.env.TMDB_API_KEY
 
     if (!TMDB_KEY) {
       return res.status(500).json({ message: "TMDB_API_KEY missing" });
