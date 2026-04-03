@@ -21,7 +21,7 @@ async function getTMDBId(imdbID) {
     `https://api.themoviedb.org/3/find/${imdbID}`,
     {
       params: {
-        api_key: process.env.VITE_TMDB_API_KEY,
+        api_key: process.env.TMDB_API_KEY,
         external_source: "imdb_id",
       },
     }
@@ -30,18 +30,60 @@ async function getTMDBId(imdbID) {
   return res.data.tv_results?.[0]?.id || null;
 }
 
-// ✅ Get Movie (VidSrc only)
+// ✅ Get Movie (VidSrc + Title + Year)
 router.get("/movies/:id", async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // IMDb ID
+    const TMDB_KEY = process.env.TMDB_API_KEY;
 
+    if (!TMDB_KEY) {
+      return res.status(500).json({ message: "TMDB_API_KEY missing" });
+    }
+
+    // 🔥 STEP 1: Convert IMDb → TMDb
+    const findRes = await axios.get(
+      `https://api.themoviedb.org/3/find/${id}`,
+      {
+        params: {
+          api_key: TMDB_KEY,
+          external_source: "imdb_id",
+        },
+      }
+    );
+
+    const movie = findRes.data.movie_results?.[0];
+
+    if (!movie) {
+      return res.status(404).json({ message: "Movie not found in TMDB" });
+    }
+
+    const tmdbId = movie.id;
+
+    // 🔥 STEP 2: Get full movie details
+    const movieRes = await axios.get(
+      `https://api.themoviedb.org/3/movie/${tmdbId}`,
+      {
+        params: { api_key: TMDB_KEY },
+      }
+    );
+
+    const movieData = movieRes.data;
+
+    // 🔥 STEP 3: Return everything frontend needs
     res.status(200).json({
       movieId: id,
+      Title: movieData.title,
+      Year: movieData.release_date?.split("-")[0],
       vidSrc: `https://vidsrc.xyz/embed/movie/${id}`,
     });
 
   } catch (error) {
-    res.status(500).json({ message: "Error fetching movie", error });
+    console.error("MOVIE ERROR:", error.response?.data || error.message);
+
+    res.status(500).json({
+      message: "Error fetching movie",
+      error: error.response?.data || error.message,
+    });
   }
 });
 
