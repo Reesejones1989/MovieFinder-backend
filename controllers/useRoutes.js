@@ -144,8 +144,8 @@ router.get("/tv/:id/info", async (req, res) => {
 
     res.json({
       id: tmdbId,
-      title: showRes.data.name,
-      year: showRes.data.first_air_date?.split("-")[0],
+      Title: showRes.data.name,
+      Year: showRes.data.first_air_date?.split("-")[0],
       totalSeasons: showRes.data.number_of_seasons,
     });
 
