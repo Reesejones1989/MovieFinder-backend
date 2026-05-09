@@ -155,11 +155,13 @@ if (!id || id === "undefined" || id === "null") {
     );
 
     res.json({
-      id: tmdbId,
-      Title: showRes.data.name,
-      Year: showRes.data.first_air_date?.split("-")[0],
-      totalSeasons: showRes.data.number_of_seasons,
-    });
+  id,
+  tmdbId,
+  Title: showRes.data.name,
+  Year: showRes.data.first_air_date?.split("-")[0],
+  totalSeasons: showRes.data.number_of_seasons,
+  seasons: showRes.data.seasons || [],
+});
 
   } catch (error) {
     console.error("TMDB ERROR:", error.response?.data || error.message);
