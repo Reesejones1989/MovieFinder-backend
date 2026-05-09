@@ -33,7 +33,14 @@ async function getTMDBId(imdbID) {
 // ✅ Get Movie (VidSrc + Title + Year)
 router.get("/movies/:id", async (req, res) => {
   try {
-    const { id } = req.params; // IMDb ID
+    const { id } = req.params;
+
+if (!id || id === "undefined" || id === "null") {
+  return res.status(400).json({
+    message: "Invalid IMDb ID",
+  });
+}
+    
     const TMDB_KEY = process.env.TMDB_API_KEY;
 
     if (!TMDB_KEY) {
@@ -74,7 +81,7 @@ router.get("/movies/:id", async (req, res) => {
       movieId: id,
       Title: movieData.title,
       Year: movieData.release_date?.split("-")[0],
-      vidSrc: `https://vidsrc.xyz/embed/movie/${id}`,
+      vidSrc: `https://vsembed.ru/movie/${id}`,
     });
 
   } catch (error) {
@@ -90,8 +97,13 @@ router.get("/movies/:id", async (req, res) => {
 // ✅ Get TV Show Info (TMDb)
 router.get("/tv/:id/info", async (req, res) => {
   try {
-    const { id } = req.params; // IMDb ID
-    const { season } = req.query;
+const { id } = req.params;
+
+if (!id || id === "undefined" || id === "null") {
+  return res.status(400).json({
+    message: "Invalid IMDb ID",
+  });
+}    const { season } = req.query;
 
     //const TMDB_KEY = process.env.TMDB_API_KEY;
     const TMDB_KEY = process.env.TMDB_API_KEY
@@ -162,8 +174,13 @@ router.get("/tv/:id/info", async (req, res) => {
 // ✅ Get TV Episode (VidSrc playback)
 router.get("/tv/:id", async (req, res) => {
   try {
-    const { id } = req.params;
-    const { season, episode } = req.query;
+const { id } = req.params;
+
+if (!id || id === "undefined" || id === "null") {
+  return res.status(400).json({
+    message: "Invalid IMDb ID",
+  });
+}    const { season, episode } = req.query;
 
     if (!season || !episode) {
       return res.status(400).json({
@@ -175,7 +192,7 @@ router.get("/tv/:id", async (req, res) => {
       showId: id,
       season,
       episode,
-      vidSrc: `https://vidsrc.xyz/embed/tv/${id}/${season}/${episode}`,
+      vidSrc: `https://vsembed.ru/tv/${id}/${season}/${episode}`,
     });
 
   } catch (error) {
