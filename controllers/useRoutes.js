@@ -81,7 +81,8 @@ if (!id || id === "undefined" || id === "null") {
       movieId: id,
       Title: movieData.title,
       Year: movieData.release_date?.split("-")[0],
-      vidSrc: `https://vsembed.ru/embed/movie/${id}`,
+      //vidSrc: `https://vsembed.ru/embed/movie/${id}`,
+      vidSrc: `https://vidsrcme.ru/embed/movie/${id}`
     });
 
   } catch (error) {
@@ -194,7 +195,8 @@ if (!id || id === "undefined" || id === "null") {
       showId: id,
       season,
       episode,
-      vidSrc: `https://vsembed.ru/embed/tv/${id}/${season}/${episode}`,
+      //vidSrc: `https://vsembed.ru/embed/tv/${id}/${season}/${episode}`,
+      vidSrc: `https://vidsrcme.ru/embed/tv/${id}/${season}/${episode}`,
     });
 
   } catch (error) {
