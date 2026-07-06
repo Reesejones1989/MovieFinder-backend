@@ -196,7 +196,7 @@ if (!id || id === "undefined" || id === "null") {
       season,
       episode,
       //vidSrc: `https://vsembed.ru/embed/tv/${id}/${season}/${episode}`,
-      vidSrc: `https://vsrc.su/embed/tv/${id}/${season}/${episode}`,
+      vidSrc: `https://vidsrc-me.su/embed/tv/${id}/${season}/${episode}`,
     });
 
   } catch (error) {
