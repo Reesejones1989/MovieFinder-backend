@@ -4,6 +4,15 @@ const Favorite = require("../models/Favorite");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 
+
+const {
+  MOVIE_PROVIDERS,
+  TV_PROVIDERS,
+} = require("../config/providers");
+// Cache the last known working provider
+let currentMovieProvider = 0;
+let currentTVProvider = 0;
+
 // ✅ CORS
 const cors = require("cors");
 router.use(cors({
@@ -28,6 +37,88 @@ async function getTMDBId(imdbID) {
   );
 
   return res.data.tv_results?.[0]?.id || null;
+}
+
+// ----------------------------------------------------
+// Returns the first provider that responds successfully
+// ----------------------------------------------------
+
+async function getWorkingMovieProvider(imdbId) {
+  const total = MOVIE_PROVIDERS.length;
+
+  for (let i = 0; i < total; i++) {
+    const index = (currentMovieProvider + i) % total;
+    const provider = MOVIE_PROVIDERS[index];
+    const url = `${provider}/${imdbId}`;
+
+    try {
+      await axios.head(url, {
+        timeout: 3000,
+        maxRedirects: 5,
+        validateStatus: (status) => status < 500,
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+        },
+      });
+
+      if (index !== currentMovieProvider) {
+        console.log(
+          `🎬 Switched Movie Provider -> ${provider}`
+        );
+      }
+
+      currentMovieProvider = index;
+
+      return url;
+
+    } catch (err) {
+      console.log(`❌ Movie Provider Failed: ${provider}`);
+    }
+  }
+
+  throw new Error("No movie providers available.");
+}
+
+async function getWorkingTVProvider(
+  imdbId,
+  season,
+  episode
+) {
+  const total = TV_PROVIDERS.length;
+
+  for (let i = 0; i < total; i++) {
+    const index = (currentTVProvider + i) % total;
+    const provider = TV_PROVIDERS[index];
+
+    const url =
+      `${provider}/${imdbId}/${season}/${episode}`;
+
+    try {
+      await axios.head(url, {
+        timeout: 3000,
+        maxRedirects: 5,
+        validateStatus: (status) => status < 500,
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+        },
+      });
+
+      if (index !== currentTVProvider) {
+        console.log(
+          `📺 Switched TV Provider -> ${provider}`
+        );
+      }
+
+      currentTVProvider = index;
+
+      return url;
+
+    } catch (err) {
+      console.log(`❌ TV Provider Failed: ${provider}`);
+    }
+  }
+
+  throw new Error("No TV providers available.");
 }
 
 // ✅ Get Movie (VidSrc + Title + Year)
@@ -76,14 +167,18 @@ if (!id || id === "undefined" || id === "null") {
 
     const movieData = movieRes.data;
 
-    // 🔥 STEP 3: Return everything frontend needs
-    res.status(200).json({
-      movieId: id,
-      Title: movieData.title,
-      Year: movieData.release_date?.split("-")[0],
-      //vidSrc: `https://vsembed.ru/embed/movie/${id}`,
-      vidSrc: `https://vidsrcme.ru/embed/movie/${id}`
-    });
+ // 🔥 STEP 3: Find a working provider
+const vidSrc = await getWorkingMovieProvider(id);
+
+// 🔥 STEP 4: Return everything frontend needs
+res.status(200).json({
+  movieId: id,
+  Title: movieData.title,
+  Year: movieData.release_date?.split("-")[0],
+  vidSrc,
+});
+
+
 
   } catch (error) {
     console.error("MOVIE ERROR:", error.response?.data || error.message);
@@ -191,13 +286,18 @@ if (!id || id === "undefined" || id === "null") {
       });
     }
 
-    res.status(200).json({
-      showId: id,
-      season,
-      episode,
-      //vidSrc: `https://vsembed.ru/embed/tv/${id}/${season}/${episode}`,
-      vidSrc: `https://vidsrc-me.su/embed/tv/${id}/${season}/${episode}`,
-    });
+const vidSrc = await getWorkingTVProvider(
+  id,
+  season,
+  episode
+);
+
+res.status(200).json({
+  showId: id,
+  season,
+  episode,
+  vidSrc,
+});
 
   } catch (error) {
     res.status(500).json({
