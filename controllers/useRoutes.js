@@ -15,6 +15,7 @@ let currentTVProvider = 0;
 
 // ✅ CORS
 const cors = require("cors");
+
 router.use(cors({
   origin: [
     "http://localhost:5173",
@@ -120,6 +121,120 @@ async function getWorkingTVProvider(
 
   throw new Error("No TV providers available.");
 }
+router.get("/genres/movie/:genreId", async (req, res) => {
+
+  try {
+
+    const { genreId } = req.params;
+
+    const TMDB_KEY = process.env.TMDB_API_KEY;
+
+
+    if (!TMDB_KEY) {
+      return res.status(500).json({
+        message: "TMDB_API_KEY missing"
+      });
+    }
+
+
+    // Get popular movies by genre
+    const discoverRes = await axios.get(
+      "https://api.themoviedb.org/3/discover/movie",
+      {
+        params:{
+          api_key: TMDB_KEY,
+          with_genres: genreId,
+          sort_by:"popularity.desc",
+          page:1,
+          with_original_language:"en",
+        }
+      }
+    );
+
+    const movies = (discoverRes.data.results || []).slice(0, 5);    //const movies = discoverRes.data.results || [];
+
+
+    // Convert TMDB IDs → IMDb IDs
+    const convertedMovies = await Promise.all(
+
+      movies.map(async(movie)=>{
+
+        try {
+
+          const externalRes = await axios.get(
+            `https://api.themoviedb.org/3/movie/${movie.id}/external_ids`,
+            {
+              params:{
+                api_key:TMDB_KEY
+              }
+            }
+          );
+
+
+          return {
+
+            id: movie.id,
+
+            imdb_id:
+              externalRes.data.imdb_id,
+
+            title:
+              movie.title,
+
+            year:
+              movie.release_date?.split("-")[0] || "",
+
+            poster:
+              movie.poster_path
+              ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+              : "/no-poster.png",
+
+            overview:
+              movie.overview || "",
+
+            type:"movie"
+
+          };
+
+
+        } catch(error){
+
+          console.log(
+            "IMDb conversion failed:",
+            movie.title
+          );
+
+
+          return null;
+
+        }
+
+
+      })
+
+    );
+
+
+    res.json(
+      convertedMovies.filter(Boolean)
+    );
+
+
+  } catch(error){
+
+    console.error(
+      "GENRE ERROR:",
+      error.response?.data || error.message
+    );
+
+
+    res.status(500).json({
+      message:"Error loading genre movies"
+    });
+
+  }
+
+});
 
 // ✅ Get Movie (VidSrc + Title + Year)
 router.get("/movies/:id", async (req, res) => {
@@ -189,6 +304,12 @@ res.status(200).json({
     });
   }
 });
+
+// ============================================
+// Genre Trending Movies
+// Returns MovieFinder compatible card objects
+// ============================================
+
 
 // ✅ Get TV Show Info (TMDb)
 router.get("/tv/:id/info", async (req, res) => {
