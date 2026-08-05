@@ -50,21 +50,20 @@ async function getWorkingMovieProvider(imdbId) {
   for (let i = 0; i < total; i++) {
     const index = (currentMovieProvider + i) % total;
     const provider = MOVIE_PROVIDERS[index];
-    const url = `${provider}/${imdbId}`;
+    const url = provider.build(imdbId);
+    //const movieembed = `${provider}/videoid=${imdbId}`
 
     try {
-      await axios.head(url, {
-        timeout: 3000,
-        maxRedirects: 5,
-        validateStatus: (status) => status < 500,
-        headers: {
-          "User-Agent": "Mozilla/5.0",
-        },
-      });
+    await axios.get(url, {
+    timeout: 3000,
+    maxRedirects: 5,
+    responseType: "stream",
+    validateStatus: s => s < 500
+});
 
       if (index !== currentMovieProvider) {
         console.log(
-          `🎬 Switched Movie Provider -> ${provider}`
+          `🎬 Switched Movie Provider -> ${provider.name}`
         );
       }
 
@@ -73,8 +72,7 @@ async function getWorkingMovieProvider(imdbId) {
       return url;
 
     } catch (err) {
-      console.log(`❌ Movie Provider Failed: ${provider}`);
-    }
+      console.log(`❌ Movie Provider Failed: ${provider.name}`);     }
   }
 
   throw new Error("No movie providers available.");
@@ -89,24 +87,25 @@ async function getWorkingTVProvider(
 
   for (let i = 0; i < total; i++) {
     const index = (currentTVProvider + i) % total;
-    const provider = TV_PROVIDERS[index];
+const provider = TV_PROVIDERS[index];
 
-    const url =
-      `${provider}/${imdbId}/${season}/${episode}`;
+const url = provider.build(
+    imdbId,
+    season,
+    episode
+);
 
     try {
-      await axios.head(url, {
-        timeout: 3000,
-        maxRedirects: 5,
-        validateStatus: (status) => status < 500,
-        headers: {
-          "User-Agent": "Mozilla/5.0",
-        },
-      });
+   await axios.get(url, {
+    timeout: 3000,
+    maxRedirects: 5,
+    responseType: "stream",
+    validateStatus: s => s < 500
+});
 
       if (index !== currentTVProvider) {
         console.log(
-          `📺 Switched TV Provider -> ${provider}`
+          `📺 Switched TV Provider -> ${provider.name}`
         );
       }
 
@@ -115,7 +114,7 @@ async function getWorkingTVProvider(
       return url;
 
     } catch (err) {
-      console.log(`❌ TV Provider Failed: ${provider}`);
+      console.log(`❌ TV Provider Failed: ${provider.name}`);
     }
   }
 

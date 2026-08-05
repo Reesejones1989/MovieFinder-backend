@@ -1,23 +1,41 @@
 const MOVIE_PROVIDERS = [
-  "https://vsembed.ru/embed/movie",
-  "https://vidsrcme.ru/embed/movie",
-  "https://vidsrcme.su/embed/movie",
-  "https://vidsrc-me.ru/embed/movie",
-  "https://vidsrc-me.su/embed/movie",
-  "https://vidsrc-embed.ru/embed/movie",
-  "https://vidsrc-embed.su/embed/movie",
-  "https://vsrc.su/embed/movie",
+  {
+    name: "MultiEmbed",
+    build: (imdb) =>
+      `https://multiembed.mov/?video_id=${imdb}`,
+  },
+
+  {
+    name: "VsEmbed",
+    build: (imdb) =>
+      `https://vsembed.ru/embed/movie/${imdb}`,
+  },
+
+  {
+    name: "VidSrc",
+    build: (imdb) =>
+      `https://vidsrc.xyz/embed/movie/${imdb}`,
+  },
 ];
 
 const TV_PROVIDERS = [
-  "https://vsembed.ru/embed/tv",
-  "https://vidsrcme.ru/embed/tv",
-  "https://vidsrcme.su/embed/tv",
-  "https://vidsrc-me.ru/embed/tv",
-  "https://vidsrc-me.su/embed/tv",
-  "https://vidsrc-embed.ru/embed/tv",
-  "https://vidsrc-embed.su/embed/tv",
-  "https://vsrc.su/embed/tv",
+  {
+    name: "MultiEmbed",
+    build: (imdb, season, episode) =>
+      `https://multiembed.mov/?video_id=${imdb}&s=${season}&e=${episode}`,
+  },
+
+  {
+    name: "VsEmbed",
+    build: (imdb, season, episode) =>
+      `https://vsembed.ru/embed/tv/${imdb}/${season}/${episode}`,
+  },
+
+  {
+    name: "VidSrc",
+    build: (imdb, season, episode) =>
+      `https://vidsrc.xyz/embed/tv/${imdb}/${season}/${episode}`,
+  },
 ];
 
 module.exports = {
