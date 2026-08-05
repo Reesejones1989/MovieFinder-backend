@@ -115,6 +115,10 @@ const url = provider.build(
 
     } catch (err) {
       console.log(`❌ TV Provider Failed: ${provider.name}`);
+    console.log(provider.name);
+    console.log(err.response?.status);
+    console.log(err.message);
+
     }
   }
 
@@ -411,6 +415,8 @@ const vidSrc = await getWorkingTVProvider(
   season,
   episode
 );
+console.log(provider.name);
+console.log(url);
 
 res.status(200).json({
   showId: id,
