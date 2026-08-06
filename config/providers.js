@@ -1,8 +1,10 @@
+const PREFERRED_SERVER = "venus";
+
 const MOVIE_PROVIDERS = [
   {
     name: "MultiEmbed",
     build: (imdb) =>
-      `https://multiembed.mov/?video_id=${imdb}`,
+      `https://multiembed.mov/?video_id=${imdb}&server=${PREFERRED_SERVER}`,
   },
 
   {
@@ -22,7 +24,7 @@ const TV_PROVIDERS = [
   {
     name: "MultiEmbed",
     build: (imdb, season, episode) =>
-      `https://multiembed.mov/?video_id=${imdb}&s=${season}&e=${episode}`,
+      `https://multiembed.mov/?video_id=${imdb}&s=${season}&e=${episode}&server=${PREFERRED_SERVER}`,
   },
 
   {
